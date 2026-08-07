@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH --job-name=sensor_rollup
+#SBATCH --partition=compute
+#SBATCH --nodes=1
+#SBATCH --ntasks=4
+#SBATCH --mem=2G
+#SBATCH --time=00:30:00
+#SBATCH --output=sensor_rollup_%j.out
+
+# Roll up sensor readings across MPI ranks.
+# Ran fine last week on data/input_small.csv.
+srun bash process_data.sh data/input_full.csv

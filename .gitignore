@@ -1,0 +1,23 @@
+# Secrets — never committed, never read by AI sessions (see AGENTS.md rules)
+.env
+credentials/*
+!credentials/README.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Job output / scratch
+*.log
+*.logs
+exercises/**/pi_out*/
+exercises/**/data/
+exercises/**/*.out
+
+# Working notes
+pw-ai-training.txt
+
+# Facilitator material — kept local only, never published
+docs/

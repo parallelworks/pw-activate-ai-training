@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "pw-commands": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp/pw-commands.py"]
+    },
+    "database": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp/database.py"]
+    },
+    "backend-api": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp/backend-api.py"]
+    }
+  }
+}
