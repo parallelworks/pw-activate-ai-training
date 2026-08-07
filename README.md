@@ -28,7 +28,8 @@ training.
 ## Prerequisites
 
 - The `pw` CLI installed, on PATH, and authenticated (`pw auth`); verify with
-  `pw cluster ls`
+  `pw cluster ls`. Installation and authentication steps are in the
+  [PW CLI docs](https://parallelworks.com/docs/cli)
 - Python 3.10+
 - A local Postgres server you can `createdb` against
 - Access to a training cluster on ACTIVATE
