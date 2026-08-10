@@ -10,10 +10,11 @@ point these tools stop working immediately.
 Run `scripts/setup_db.sh` to create the database and mint a token into `.env`.
 
 Tools:
-  - whoami           who the current token belongs to
-  - get_ticket       full detail for one ticket
-  - search_tickets   filter by status / assignee / urgency / category
-  - ticket_stats     counts grouped by team, status, urgency, category, or assignee
+  - whoami                 who the current token belongs to
+  - get_ticket             full detail for one ticket
+  - search_tickets         filter by status / assignee / urgency / category
+  - ticket_stats           counts grouped by team, status, urgency, category, or assignee
+  - update_ticket_status   change one ticket's status (the only mutation allowed)
 """
 
 import functools
@@ -83,6 +84,7 @@ TICKET_COLUMNS = (
     "category, created_at, updated_at, resolved_at"
 )
 GROUPABLE = {"team", "status", "urgency", "category", "assignee"}
+VALID_STATUSES = ("open", "in_progress", "blocked", "resolved", "closed")
 
 
 class ApiError(Exception):
@@ -235,6 +237,60 @@ def ticket_stats(group_by: str = "status") -> str:
             """
         ).fetchall()
     return _json({"group_by": group_by, "stats": rows})
+
+
+@mcp.tool()
+@logged
+def update_ticket_status(ticket_id: int, status: str, note: str | None = None) -> str:
+    """Change one ticket's status. This is the only mutation this API allows.
+
+    Safe by construction: the token must be valid; the status must be one of
+    the allowed values; exactly one row is touched, selected by primary key;
+    `updated_at` and `resolved_at` are maintained automatically; and an audit
+    line recording who changed what (the token owner) is appended to the
+    ticket's description. Returns the before/after state so the caller can
+    verify the change.
+
+    Args:
+        ticket_id: The ticket id, e.g. 42.
+        status: New status: open, in_progress, blocked, resolved, or closed.
+        note: Optional short reason, recorded in the audit line.
+    """
+    if status not in VALID_STATUSES:
+        raise ApiError(f"invalid status '{status}'; allowed: {', '.join(VALID_STATUSES)}")
+    with _connect() as conn:
+        auth = _authenticate(conn)
+        before = conn.execute(
+            "SELECT id, title, status, updated_at, resolved_at FROM tickets WHERE id = %s",
+            (ticket_id,),
+        ).fetchone()
+        if before is None:
+            raise ApiError(f"no ticket with id {ticket_id}")
+        if before["status"] == status:
+            return _json(
+                {"changed": False, "reason": f"ticket {ticket_id} is already '{status}'", "ticket": before}
+            )
+        audit = (
+            f"\n[{datetime.now().astimezone().isoformat(timespec='seconds')}] "
+            f"status {before['status']} -> {status} by {auth['owner']}"
+            + (f": {note}" if note else "")
+        )
+        after = conn.execute(
+            """
+            UPDATE tickets
+            SET status = %s,
+                updated_at = now(),
+                resolved_at = CASE
+                    WHEN %s IN ('resolved', 'closed') THEN coalesce(resolved_at, now())
+                    ELSE NULL
+                END,
+                description = description || %s
+            WHERE id = %s
+            RETURNING id, title, status, updated_at, resolved_at
+            """,
+            (status, status, audit, ticket_id),
+        ).fetchone()
+    return _json({"changed": True, "changed_by": auth["owner"], "before": before, "after": after})
 
 
 if __name__ == "__main__":

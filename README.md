@@ -59,8 +59,13 @@ Then start `pw code` in the repo root. It picks up the three MCP servers from
 
 - **pw-commands** — `list_clusters`, `check_cluster`, `run_remote_command`
 - **database** — `list_tables`, `describe_table`, `run_query` (SELECT-only)
-- **backend-api** — `whoami`, `get_ticket`, `search_tickets`, `ticket_stats`
-  (every call re-validates the token; try `whoami` first)
+- **backend-api** — `whoami`, `get_ticket`, `search_tickets`, `ticket_stats`,
+  `update_ticket_status` (every call re-validates the token; try `whoami`
+  first). `update_ticket_status` is the one deliberate mutation in the whole
+  setup: it demonstrates *safe* write access — validated status values, a
+  single row addressed by primary key, `updated_at`/`resolved_at` maintained
+  automatically, an audit line recording who changed what appended to the
+  ticket, and the before/after state returned for verification.
 
 Warm-up prompts: "who has the most open critical tickets?", "list unassigned
 criticals", "is the gpu partition busy right now?" — and notice which server
