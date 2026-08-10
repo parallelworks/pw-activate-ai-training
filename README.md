@@ -67,6 +67,67 @@ Then start `pw code` in the repo root. It picks up the three MCP servers from
   automatically, an audit line recording who changed what appended to the
   ticket, and the before/after state returned for verification.
 
+The three servers are documented in detail in [`mcp/README.md`](mcp/README.md)
+— tools, safety models, and logging, side by side.
+
+### Configuring MCP servers
+
+Full documentation: <https://parallelworks.com/docs/ai/code/mcp>
+
+**Option 1 — JSON config file.** This repo ships `.mcp.json` at the root, the
+cross-tool standard location, so the servers work out of the box:
+
+```json
+{
+  "mcpServers": {
+    "pw-commands": {
+      "command": ".venv/bin/python3",
+      "args": ["mcp/pw-commands.py"]
+    }
+  }
+}
+```
+
+`pw code` reads the first config file (highest priority first) whose
+`mcpServers` map is non-empty — the winning file is used wholesale, they are
+not merged:
+
+1. `<workspace>/.agents/settings.local.json` — personal, per-project (gitignore it)
+2. `<workspace>/.agents/settings.json` — shared project settings
+3. `<workspace>/.mcp.json` — cross-tool standard (what this repo uses)
+4. `~/.config/pw/code.json` — user-global
+
+Note the priority order: if you add a server to a higher-priority file (e.g.
+`.agents/settings.local.json`), that file replaces `.mcp.json` entirely, so
+copy the three training servers along with it.
+
+**Option 2 — command line.** `pw code mcp` manages the same files for you:
+
+```bash
+# Add a stdio (command-type) server; command goes after "--"
+pw code mcp add my-server -- .venv/bin/python3 mcp/my-server.py
+
+# Add with an environment variable
+pw code mcp add -e API_KEY=secret my-server -- python3 server.py
+
+# Add an HTTP server
+pw code mcp add --transport http context7 https://mcp.context7.com/mcp
+
+# Inspect / remove
+pw code mcp list
+pw code mcp get my-server
+pw code mcp remove my-server
+
+# Run with no arguments to be prompted for each value
+pw code mcp add
+```
+
+By default `add` writes to `.agents/settings.local.json` (personal). Use
+`--scope` to target a different file: `user` (`~/.config/pw/code.json`),
+`project` (`.mcp.json`), `agents` (`.agents/settings.json`), or `local`.
+Inside a running session, `/mcp` shows each server's status and lets you
+reconnect after a config or script change.
+
 Warm-up prompts: "who has the most open critical tickets?", "list unassigned
 criticals", "is the gpu partition busy right now?" — and notice which server
 each question *has* to go to.
