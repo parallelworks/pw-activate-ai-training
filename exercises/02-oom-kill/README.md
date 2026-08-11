@@ -11,8 +11,10 @@ Your job: find out what's killing it and propose the smallest possible fix.
 
 ## Ground rules
 
-- Work inside `pw code`, using only the **pw-commands** MCP server to query
-  the cluster. No manual SSH sessions.
+- Work inside `pw code`, preferring the **pw-commands** MCP server to query
+  the cluster. If the MCP route gets stuck, SSHing into the cluster and
+  running the same commands by hand is a fine fallback — the discipline is
+  about evidence, not the transport.
 - **Pull only the evidence you need.** The discipline here is knowing which
   record answers the question — not tailing every log on the machine, and not
   reading the application code first.

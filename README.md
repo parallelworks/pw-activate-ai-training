@@ -15,7 +15,7 @@ action, and let that context, not a guess, drive whether and what to change.*
 | `mcp/database.py` | MCP server with read-only access to the local `pw_training` Postgres database |
 | `mcp/backend-api.py` | MCP server that authenticates every call with a token validated against the database, then serves the `tickets` dataset |
 | `db/init.sql` | Schema + seed data: `api_tokens` and ~110 support tickets |
-| `exercises/01-stuck-gpu-job/` | A GPU job pends for an hour on a "half-empty" cluster — diagnose it |
+| `exercises/01-failed-gpu-job/` | A GPU job the scheduler won't run — diagnose it from the evidence |
 | `exercises/02-oom-kill/` | A data job dies partway with no obvious error — find the one-line fix |
 | `credentials/` | Secrets directory used in the AGENTS.md demo — off-limits to AI sessions |
 | `.env.example` | Every configuration variable name (values live in the gitignored `.env`) |
@@ -178,11 +178,12 @@ and in what order — when reviewing an exercise.
 ## The exercises
 
 Each exercise directory has its own README with the scenario and ground
-rules. Both run entirely through `pw code` + the pw-commands server:
+rules. Both run through `pw code` + the pw-commands server (with plain SSH
+as a fallback when the MCP route gets stuck):
 
-1. **[01 — the stuck GPU job](exercises/01-stuck-gpu-job/)** — the queue
-   looks broken; the scheduler says otherwise. Sometimes the right move is no
-   code change at all.
+1. **[01 — the failed GPU job](exercises/01-failed-gpu-job/)** — a GPU job
+   the scheduler won't run. The cluster isn't out of GPUs, and the fix is
+   one line — in the right file.
 2. **[02 — the job that keeps dying](exercises/02-oom-kill/)** — worked last
    week, dies today. Three pieces of evidence and a one-line fix.
 
