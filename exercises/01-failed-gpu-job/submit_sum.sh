@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=sum_job
-#SBATCH --partition=prodgpu
+#SBATCH --partition=prod
 #SBATCH --qos=normal
 #SBATCH --account=default
 #SBATCH --nodes=2
