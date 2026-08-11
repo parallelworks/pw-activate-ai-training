@@ -58,7 +58,7 @@ ALLOWED_COMMANDS = {
     "pwd", "cd", "echo", "date", "hostname", "uname", "uptime", "whoami", "id",
     "groups", "who", "w", "env", "printenv", "df", "du", "free", "ps", "top",
     "wc", "which", "nproc", "lscpu", "lsblk", "lsmem", "find", "grep", "tree",
-    "module", "quota",
+    "module", "quota", "base64",
     # Other useful commands
     "show_queues", "show_storage", "show_usage"
 }
@@ -232,7 +232,7 @@ def run_remote_command(resource: str, command: str, timeout: int = DEFAULT_TIMEO
     The resource must be running and connected. Only allowlisted binaries are
     permitted: Slurm/PBS scheduler commands (sinfo, squeue, sbatch, scancel,
     sacct, qstat, qsub, qdel, pbsnodes, ...) and read-only basic Linux commands
-    (ls, cat, df, hostname, uname, ...).
+    (ls, cat, df, hostname, uname, echo, ...).
 
     Args:
         resource: Resource name or pw:// URI (e.g. 'my-cluster', 'workspace').

@@ -2,10 +2,9 @@
 
 ## The situation
 
-The `sensor_rollup` job processes a day's worth of sensor readings. Last week
-it ran perfectly on a test file. This week, running against the full dataset,
-it keeps dying partway through — and the output file shows no obvious error,
-it just... stops.
+The `sensor_rollup` job processes a day's worth of sensor readings. It keeps
+dying partway through — and the output file shows no obvious error, it
+just... stops.
 
 Your job: find out what's killing it and propose the smallest possible fix.
 
@@ -24,11 +23,8 @@ Your job: find out what's killing it and propose the smallest possible fix.
 ## Getting started
 
 1. Generate the input data on the cluster (one-time, takes a few minutes):
-   run `bash make_input.sh small` and `bash make_input.sh full` in this
-   directory on the cluster.
-2. Sanity-check the small run if you like: edit the input path in
-   `submit_process.sh` to `data/input_small.csv` and submit — it completes.
-3. Submit the real run: `sbatch submit_process.sh`, wait for it to die, then
+   run `bash make_input.sh` in this directory on the cluster.
+2. Submit the run: `sbatch submit_process.sh`, wait for it to die, then
    investigate.
 
 ## Deliverable

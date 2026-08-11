@@ -184,8 +184,9 @@ as a fallback when the MCP route gets stuck):
 1. **[01 — the failed GPU job](exercises/01-failed-gpu-job/)** — a GPU job
    the scheduler won't run. The cluster isn't out of GPUs, and the fix is
    one line — in the right file.
-2. **[02 — the job that keeps dying](exercises/02-oom-kill/)** — worked last
-   week, dies today. Three pieces of evidence and a one-line fix.
+2. **[02 — the job that keeps dying](exercises/02-oom-kill/)** — it stops
+   partway with no error in sight. Three pieces of evidence and a one-line
+   fix.
 
 Facilitators: solutions, tuning knobs, and demo scripts are kept out of this
 repo — ask the training team for the facilitator guide.
