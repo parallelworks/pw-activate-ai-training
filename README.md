@@ -40,15 +40,19 @@ training.
 ## Setup
 
 ```bash
-# 1. Create the virtual environment at .venv (this exact path — .mcp.json
+# 1. Clone the repo and cd into it
+git clone https://github.com/parallelworks/pw-activate-ai-training.git
+cd pw-activate-ai-training
+
+# 2. Create the virtual environment at .venv (this exact path — .mcp.json
 #    launches the MCP servers with .venv/bin/python3) and install dependencies
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
-# 2. Create + seed the database; mints an API token into .env
+# 3. Create + seed the database; mints an API token into .env
 bash scripts/setup_db.sh
 
-# 3. Plant the fake secrets for the AGENTS.md demo
+# 4. Plant the fake secrets for the AGENTS.md demo
 bash scripts/seed_credentials.sh
 ```
 
