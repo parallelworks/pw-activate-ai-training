@@ -4,7 +4,7 @@
 #SBATCH --qos=standard
 #SBATCH --nodes=1
 #SBATCH --ntasks=4
-#SBATCH --mem=2G
+#SBATCH --mem=1G
 #SBATCH --time=00:30:00
 #SBATCH --output=sensor_rollup_%j.out
 

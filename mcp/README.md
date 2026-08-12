@@ -7,7 +7,7 @@ together they cover the three access patterns the training contrasts:
 
 | Server | Script | Reaches | Auth | Writes |
 |---|---|---|---|---|
-| `pw-commands` | `pw-commands.py` | Live cluster/scheduler state via the `pw` CLI | Inherits your `pw auth` identity | None — allowlisted read/scheduler commands only |
+| `pw-commands` | `pw-commands.py` | Live cluster/scheduler state via the `pw` CLI | Inherits your `pw auth` identity | One: `transfer_file_to_remote` writes a file on the remote host; commands are otherwise allowlisted read/scheduler only |
 | `database` | `database.py` | Local `pw_training` Postgres | Credentials from `.env` | None — SELECT-only by construction |
 | `backend-api` | `backend-api.py` | Curated `tickets` API over the same Postgres | Token validated against the DB on every call | Exactly one: `update_ticket_status` |
 
@@ -30,6 +30,7 @@ resources the authenticated `pw` user can already reach. No database or
 | `list_clusters` | `status` (active/off/failed), `owned` (bool) | Lists clusters from `pw cluster ls -o json`, each with a `connected` flag |
 | `check_cluster` | `name` | Reports whether one cluster is provisioned and active |
 | `run_remote_command` | `resource`, `command`, `timeout` | Runs an **allowlisted** command on a remote resource via `pw ssh` |
+| `transfer_file_to_remote` | `resource`, `local_path`, `remote_path`, `timeout` | Copies a small local file to the remote host: base64-encoded locally, sent in chunks via `echo`, decoded remotely with `base64 -d` |
 
 **Safety model**: `run_remote_command` refuses any command whose first
 binary is not in `ALLOWED_COMMANDS` (top of the script) — Slurm and
@@ -37,6 +38,16 @@ PBS/Torque scheduler commands plus read-only Linux basics (`ls`, `cat`,
 `tail`, `df`, `grep`, `module`, ...). Nothing destructive (`rm`, `mv`,
 `chmod`, editors, shells) is reachable, and every invocation is bounded by a
 timeout.
+
+`transfer_file_to_remote` is the server's one write path: it creates or
+overwrites exactly the file at `remote_path` (it cannot delete or move
+anything). Files are capped at 100 KB by default — raise it with the
+`PW_MCP_MAX_TRANSFER_KB` environment variable, though each ~45 KB costs one
+`pw ssh` round trip, so use a real transfer tool beyond a few MB. It needs
+`echo` and `base64` allowlisted here and present on the remote host, and
+reports clearly when either is missing. After writing it verifies the remote
+byte count matches; `success: false` in the output means a partial or
+mismatched transfer.
 
 *Try:* "Is the gpu partition busy right now?" · "Why is job 4242 still
 pending? Check its Reason field first."
