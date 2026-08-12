@@ -6,9 +6,11 @@ A Model Context Protocol server that exposes the `pw` CLI to an MCP client
 FastMCP, so each tool is a plain decorated function.
 
 Tools:
-  - list_clusters          list clusters, optionally filtered by status/owner
-  - check_cluster          check whether a single cluster is connected (active)
-  - run_remote_command     run an allowlisted command on a resource via `pw ssh`
+  - list_clusters            list clusters, optionally filtered by status/owner
+  - check_cluster            check whether a single cluster is connected (active)
+  - run_remote_command       run an allowlisted command on a resource via `pw ssh`
+  - transfer_file_to_remote  copy a small local file (100 KB max) to a resource
+                             by base64-encoding it and decoding it remotely
 
 Requirements: Python 3.10+ and the `mcp` package (`pip install mcp`). The `pw`
 CLI must be installed, on PATH, and authenticated (`pw auth`).
@@ -25,8 +27,10 @@ Wire it up in an MCP client with something like:
     }
 """
 
+import base64
 import functools
 import json
+import os
 import shlex
 import shutil
 import subprocess
@@ -46,6 +50,19 @@ LOG_FILE = Path(__file__).resolve().with_suffix(".logs")
 # Seconds to wait before giving up on a `pw` invocation.
 DEFAULT_TIMEOUT = 120
 
+# transfer_file_to_remote: maximum local file size, in KB (default 100).
+# Override with the PW_MCP_MAX_TRANSFER_KB environment variable. Every ~45 KB
+# of file content costs one `pw ssh` round trip, so keep this small — beyond
+# a few MB, use a real transfer tool (scp/rsync) instead.
+MAX_TRANSFER_KB = int(os.environ.get("PW_MCP_MAX_TRANSFER_KB", "100"))
+MAX_TRANSFER_BYTES = MAX_TRANSFER_KB * 1024
+
+# Base64 characters sent per remote `echo`. Must be a multiple of 4 so each
+# chunk decodes independently when appended, and must stay well under Linux's
+# 128 KiB per-argument limit, because the whole remote command is passed to
+# the local `pw` binary as a single argument.
+TRANSFER_CHUNK_CHARS = 60_000
+
 # run_command only permits these binaries: schedulers plus read-only basics.
 ALLOWED_COMMANDS = {
     # Slurm
@@ -58,7 +75,7 @@ ALLOWED_COMMANDS = {
     "pwd", "cd", "echo", "date", "hostname", "uname", "uptime", "whoami", "id",
     "groups", "who", "w", "env", "printenv", "df", "du", "free", "ps", "top",
     "wc", "which", "nproc", "lscpu", "lsblk", "lsmem", "find", "grep", "tree",
-    "module", "quota",
+    "module", "quota", "base64",
     # Other useful commands
     "show_queues", "show_storage", "show_usage"
 }
@@ -232,7 +249,7 @@ def run_remote_command(resource: str, command: str, timeout: int = DEFAULT_TIMEO
     The resource must be running and connected. Only allowlisted binaries are
     permitted: Slurm/PBS scheduler commands (sinfo, squeue, sbatch, scancel,
     sacct, qstat, qsub, qdel, pbsnodes, ...) and read-only basic Linux commands
-    (ls, cat, df, hostname, uname, ...).
+    (ls, cat, df, hostname, uname, echo, ...).
 
     Args:
         resource: Resource name or pw:// URI (e.g. 'my-cluster', 'workspace').
@@ -248,6 +265,90 @@ def run_remote_command(resource: str, command: str, timeout: int = DEFAULT_TIMEO
         )
     out = _ssh_run(resource, command, timeout)
     return out.strip() or "(no output)"
+
+
+@mcp.tool()
+@logged
+def transfer_file_to_remote(
+    resource: str, local_path: str, remote_path: str, timeout: int = DEFAULT_TIMEOUT
+) -> str:
+    """Transfer a small local file to a remote resource via `pw ssh`.
+
+    The file (at most MAX_TRANSFER_KB, default 100 KB) is base64-encoded
+    locally, echoed to the remote host in chunks, and decoded into
+    `remote_path` with `base64 -d`. Both `echo` and `base64` must be in this
+    server's allowlist and present on the remote host; if either is not
+    allowed or not found, the output says so explicitly.
+
+    Args:
+        resource: Resource name or pw:// URI (e.g. 'my-cluster', 'workspace').
+        local_path: Path of the local file to send.
+        remote_path: Destination file path on the remote host.
+        timeout: Seconds before giving up on each remote command.
+    """
+    path = Path(local_path).expanduser()
+    if not path.is_file():
+        raise PwError(f"local file not found: {path}")
+    size = path.stat().st_size
+    if size > MAX_TRANSFER_BYTES:
+        raise PwError(
+            f"{path} is {size:,} bytes; transfer_file_to_remote supports at most "
+            f"{MAX_TRANSFER_BYTES:,} bytes ({MAX_TRANSFER_KB} KB). "
+            "Raise the limit with the PW_MCP_MAX_TRANSFER_KB environment variable."
+        )
+
+    not_allowed = sorted(b for b in ("echo", "base64") if b not in ALLOWED_COMMANDS)
+    if not_allowed:
+        return json.dumps(
+            {
+                "success": False,
+                "error": "required binaries are not in this server's ALLOWED_COMMANDS: "
+                + ", ".join(not_allowed),
+            },
+            indent=2,
+        )
+    try:
+        _ssh_run(resource, "which echo base64", timeout)
+    except PwError as e:
+        return json.dumps(
+            {
+                "success": False,
+                "error": "`echo` and/or `base64` not found on the remote host; cannot transfer",
+                "detail": str(e),
+            },
+            indent=2,
+        )
+
+    encoded = base64.b64encode(path.read_bytes()).decode("ascii")
+    dest = shlex.quote(remote_path)
+    chunks = 0
+    if not encoded:  # empty file: just (re)create the destination
+        _ssh_run(resource, f"echo -n > {dest}", timeout)
+    else:
+        for start in range(0, len(encoded), TRANSFER_CHUNK_CHARS):
+            redirect = ">" if start == 0 else ">>"
+            chunk = encoded[start : start + TRANSFER_CHUNK_CHARS]
+            _ssh_run(resource, f"echo {chunk} | base64 -d {redirect} {dest}", timeout)
+            chunks += 1
+
+    remote_size = None
+    try:
+        remote_size = int(_ssh_run(resource, f"wc -c < {dest}", timeout).strip())
+    except (PwError, ValueError):
+        pass
+
+    return json.dumps(
+        {
+            "success": remote_size == size if remote_size is not None else True,
+            "resource": resource,
+            "local_path": str(path),
+            "remote_path": remote_path,
+            "bytes_sent": size,
+            "remote_bytes": remote_size if remote_size is not None else "(verification failed)",
+            "chunks": chunks,
+        },
+        indent=2,
+    )
 
 
 if __name__ == "__main__":

@@ -2,17 +2,18 @@
 
 ## The situation
 
-The `sensor_rollup` job processes a day's worth of sensor readings. Last week
-it ran perfectly on a test file. This week, running against the full dataset,
-it keeps dying partway through — and the output file shows no obvious error,
-it just... stops.
+The `sensor_rollup` job processes a day's worth of sensor readings. It keeps
+dying partway through — and the output file shows no obvious error, it
+just... stops.
 
 Your job: find out what's killing it and propose the smallest possible fix.
 
 ## Ground rules
 
-- Work inside `pw code`, using only the **pw-commands** MCP server to query
-  the cluster. No manual SSH sessions.
+- Work inside `pw code`, preferring the **pw-commands** MCP server to query
+  the cluster. If the MCP route gets stuck, SSHing into the cluster and
+  running the same commands by hand is a fine fallback — the discipline is
+  about evidence, not the transport.
 - **Pull only the evidence you need.** The discipline here is knowing which
   record answers the question — not tailing every log on the machine, and not
   reading the application code first.
@@ -22,11 +23,8 @@ Your job: find out what's killing it and propose the smallest possible fix.
 ## Getting started
 
 1. Generate the input data on the cluster (one-time, takes a few minutes):
-   run `bash make_input.sh small` and `bash make_input.sh full` in this
-   directory on the cluster.
-2. Sanity-check the small run if you like: edit the input path in
-   `submit_process.sh` to `data/input_small.csv` and submit — it completes.
-3. Submit the real run: `sbatch submit_process.sh`, wait for it to die, then
+   run `bash make_input.sh` in this directory on the cluster.
+2. Submit the run: `sbatch submit_process.sh`, wait for it to die, then
    investigate.
 
 ## Deliverable
