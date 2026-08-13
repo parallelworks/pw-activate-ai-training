@@ -34,7 +34,8 @@ training.
   `pw cluster ls`. Installation and authentication steps are in the
   [PW CLI docs](https://parallelworks.com/docs/cli)
 - Python 3.10+
-- A local Postgres server you can `createdb` against
+- *(Optional)* A PostgreSQL database running locally that you can `createdb`
+  against — only required for the `database` and `backend-api` MCP servers
 - Access to an on-prem cluster on ACTIVATE
 
 ## Setup
