@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=sum_job
-#SBATCH --partition=prod
-#SBATCH --qos=normal
+#SBATCH --partition=standard
+#SBATCH --qos=standard
 #SBATCH --account=default
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
 #SBATCH --gres=gpu:4
 #SBATCH --time=00:10:00
