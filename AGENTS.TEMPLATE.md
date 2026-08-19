@@ -1,6 +1,10 @@
-# AGENTS.md
+# AGENTS.TEMPLATE.md
 
 This document describes the agent architecture and available agents in the system.
+
+**This file is a reference template — it is inert as `AGENTS.TEMPLATE.md`.** To
+put it to work, copy it to `AGENTS.md` (`cp AGENTS.TEMPLATE.md AGENTS.md`) and
+restart `pw code`, which reads `AGENTS.md` at session start.
 
 ---
 
