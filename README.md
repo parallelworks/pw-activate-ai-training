@@ -17,13 +17,20 @@ action, and let that context, not a guess, drive whether and what to change.*
 | `db/init.sql` | Schema + seed data: `api_tokens` and ~110 support tickets |
 | `exercises/01-failed-gpu-job/` | A GPU job the scheduler won't run — diagnose it from the evidence |
 | `exercises/02-oom-kill/` | A data job dies partway with no obvious error — find the one-line fix |
-| `credentials/` | Secrets directory used in the AGENTS.md demo — off-limits to AI sessions |
+| `AGENTS.TEMPLATE.md` | Reference template for the repo's `AGENTS.md` — agent roster plus the secrets-are-off-limits policy; copy it to `AGENTS.md` to make it live |
+| `credentials/` | Secrets directory used in the `AGENTS.md` demo — off-limits to AI sessions |
 | `.env.example` | Every configuration variable name (values live in the gitignored `.env`) |
 | `.mcp.json` | Registers the three MCP servers for `pw code` |
 
 Note there is deliberately **no `AGENTS.md`** in this repo: creating it — and
 watching a restarted `pw code` session start obeying it — is part of the
-training.
+training. The repo ships **[`AGENTS.TEMPLATE.md`](AGENTS.TEMPLATE.md)** for
+reference only — `pw code` ignores it under that name. Write your own during
+the exercise, or, to see the effect immediately:
+
+```bash
+cp AGENTS.TEMPLATE.md AGENTS.md   # then restart `pw code`
+```
 
 ## Prerequisites
 
@@ -53,7 +60,7 @@ python3 -m venv .venv
 # 3. Create + seed the database; mints an API token into .env
 bash scripts/setup_db.sh
 
-# 4. Plant the fake secrets for the AGENTS.md demo
+# 4. Plant the fake secrets for the AGENTS.md demo (see AGENTS.TEMPLATE.md)
 bash scripts/seed_credentials.sh
 ```
 
