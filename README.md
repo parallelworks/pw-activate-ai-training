@@ -18,6 +18,7 @@ action, and let that context, not a guess, drive whether and what to change.*
 | `exercises/01-failed-gpu-job/` | A GPU job the scheduler won't run — diagnose it from the evidence |
 | `exercises/02-oom-kill/` | A data job dies partway with no obvious error — find the one-line fix |
 | `exercises/03-missing-input/` | On an AWS cloud cluster, a job can't open an input file that is "right there" — find out why |
+| `exercises/04-failed-workflow/` | A workflow run fails on the cloud cluster — diagnose it with `pw code`'s built-in `diagnose-run` skill |
 | `AGENTS.TEMPLATE.md` | Reference template for the repo's `AGENTS.md` — agent roster plus the secrets-are-off-limits policy; copy it to `AGENTS.md` to make it live |
 | `credentials/` | Secrets directory used in the `AGENTS.md` demo — off-limits to AI sessions |
 | `.env.example` | Every configuration variable name (values live in the gitignored `.env`) |
@@ -230,6 +231,10 @@ when the MCP route gets stuck):
    the submitter can `ls`. The compute node is started ahead of time, so
    there's no cold-start wait. Needs `config.sh`, `stage_input.sh`,
    `analyze_readings.sh`, and `submit_analyze.sh` on the cluster.
+4. **[04 — the workflow that fails](exercises/04-failed-workflow/)** — an
+   ACTIVATE workflow fails partway on the same cloud cluster. Diagnose it
+   with `pw code`'s built-in `diagnose-run` skill. Runs from your machine
+   with `pw workflows create` / `run`; nothing to copy to the cluster.
 
 ### Before you start
 

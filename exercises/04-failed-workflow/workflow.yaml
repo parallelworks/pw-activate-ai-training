@@ -1,0 +1,49 @@
+jobs:
+  render:
+    ssh:
+      remoteHost: ${{ inputs.resource.ip }}
+    steps:
+      - name: Write batch script
+        run: |
+          mkdir -p ~/04-render
+          cat > ~/04-render/render.sbatch <<'EOF'
+          #!/bin/bash
+          #SBATCH --job-name=render_frames
+          #SBATCH --nodes=1
+          #SBATCH --ntasks=1
+          #SBATCH --output=render_%j.out
+          for f in $(seq 1 "$FRAMES"); do
+              sleep 1
+              echo "frame $f/$FRAMES rendered"
+          done
+          echo "all $FRAMES frames rendered"
+          EOF
+      - name: Render frames
+        run: |
+          cd ~/04-render
+          set +e
+          jobid=$(sbatch --parsable --wait \
+              --time=${{ inputs.walltime }} \
+              --export=ALL,FRAMES=${{ inputs.frames }} \
+              render.sbatch)
+          rc=$?
+          set -e
+          echo "job $jobid finished with exit code $rc"
+          cat "render_${jobid}.out"
+          exit $rc
+'on':
+  execute:
+    inputs:
+      resource:
+        type: compute-clusters
+        label: Cluster
+        autoselect: true
+        optional: false
+      frames:
+        type: number
+        label: Frames to render
+        default: 120
+      walltime:
+        type: string
+        label: Walltime (HH:MM:SS)
+        default: "00:01:00"
