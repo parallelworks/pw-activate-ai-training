@@ -6,8 +6,9 @@ already up.
 ## The situation
 
 A colleague turned a frame-rendering job into an ACTIVATE workflow
-(`workflow.yaml`). It worked when they tried it, but now every run fails
-partway through. In their words: *"the cloud node must be getting reclaimed."*
+(`workflow.yaml`). It worked on the cluster they built it on, but on the
+training cluster every run fails within seconds. In their words: *"the cloud
+node must not be up yet."*
 
 Your job: find out why the run fails, using `pw code`'s built-in
 **`diagnose-run`** skill, and propose the smallest fix.
@@ -24,6 +25,21 @@ Your job: find out why the run fails, using `pw code`'s built-in
 
 ## Getting started
 
+Create and run the workflow in the ACTIVATE UI or with the `pw` CLI; both
+produce the same run. The session demo uses the UI.
+
+### In the ACTIVATE UI
+
+1. Go to **Workflows** and create a new workflow named `ex04-render`.
+2. Open its **Build** tab, replace the YAML with the contents of
+   `workflow.yaml`, and **Save**.
+3. Run the workflow: pick the training cluster, leave every other input at
+   its default, and **Execute**.
+4. Note the run slug (e.g. `swift-falcon-17`) on the run's page. The run
+   fails within seconds.
+
+### With the `pw` CLI
+
 1. Save the workflow to your account, from this directory:
 
    ```bash
@@ -31,22 +47,25 @@ Your job: find out why the run fails, using `pw code`'s built-in
    ```
 
 2. Run it on the training cluster with its default inputs, and note the run
-   slug it prints (e.g. `swift-falcon-17`):
+   slug it prints:
 
    ```bash
    pw workflows run -i '{"resource": "pw://<cluster-name>"}' ex04-render
    ```
 
-   The run takes about two minutes to fail.
+   The run fails within seconds.
 
-3. In `pw code`, ask *"why did run `<slug>` fail?"*, or invoke the skill
-   directly with `/diagnose-run <slug>`.
+### Diagnose it
+
+In `pw code`, ask *"why did run `<slug>` fail?"*, or invoke the skill
+directly with `/diagnose-run <slug>`. It doesn't matter whether the run was
+started from the UI or the CLI.
 
 ## Deliverable
 
 - Why did the run fail? Quote the evidence the skill found: the failed job
-  and step, the log line, and the scheduler state.
-- Is the "node got reclaimed" theory right? Why or why not?
+  and step, and the log line.
+- Is the "node isn't up yet" theory right? Why or why not?
 - Where does the root cause live: the workflow's YAML, the inputs the run
   used, or the cluster? What's the fix, and what would you change so the next
   person doesn't hit it?

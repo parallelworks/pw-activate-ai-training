@@ -22,12 +22,15 @@ jobs:
         run: |
           cd ~/04-render
           set +e
+          partition="${{ inputs.partition }}"
           jobid=$(sbatch --parsable --wait \
+              ${partition:+--partition=$partition} \
               --time=${{ inputs.walltime }} \
               --export=ALL,FRAMES=${{ inputs.frames }} \
               render.sbatch)
           rc=$?
           set -e
+          [ -n "$jobid" ] || exit $rc
           echo "job $jobid finished with exit code $rc"
           cat "render_${jobid}.out"
           exit $rc
@@ -39,11 +42,16 @@ jobs:
         label: Cluster
         autoselect: true
         optional: false
+      partition:
+        type: string
+        label: Slurm partition (blank for the cluster default)
+        default: render
+        optional: true
       frames:
         type: number
         label: Frames to render
-        default: 120
+        default: 20
       walltime:
         type: string
         label: Walltime (HH:MM:SS)
-        default: "00:01:00"
+        default: "00:05:00"

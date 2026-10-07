@@ -232,9 +232,9 @@ when the MCP route gets stuck):
    there's no cold-start wait. Needs `config.sh`, `stage_input.sh`,
    `analyze_readings.sh`, and `submit_analyze.sh` on the cluster.
 4. **[04 — the workflow that fails](exercises/04-failed-workflow/)** — an
-   ACTIVATE workflow fails partway on the same cloud cluster. Diagnose it
-   with `pw code`'s built-in `diagnose-run` skill. Runs from your machine
-   with `pw workflows create` / `run`; nothing to copy to the cluster.
+   ACTIVATE workflow fails within seconds on the same cloud cluster. Diagnose it
+   with `pw code`'s built-in `diagnose-run` skill. Run the workflow from
+   the ACTIVATE UI or the `pw` CLI; nothing to copy to the cluster.
 
 ### Before you start
 
