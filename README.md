@@ -17,6 +17,8 @@ action, and let that context, not a guess, drive whether and what to change.*
 | `db/init.sql` | Schema + seed data: `api_tokens` and ~110 support tickets |
 | `exercises/01-failed-gpu-job/` | A GPU job the scheduler won't run — diagnose it from the evidence |
 | `exercises/02-oom-kill/` | A data job dies partway with no obvious error — find the one-line fix |
+| `exercises/03-missing-input/` | On an AWS cloud cluster, a job can't open an input file that is "right there" — find out why |
+| `exercises/04-failed-workflow/` | A workflow run fails on the cloud cluster — diagnose it with `pw code`'s built-in `diagnose-run` skill |
 | `AGENTS.TEMPLATE.md` | Reference template for the repo's `AGENTS.md` — agent roster plus the secrets-are-off-limits policy; copy it to `AGENTS.md` to make it live |
 | `credentials/` | Secrets directory used in the `AGENTS.md` demo — off-limits to AI sessions |
 | `.env.example` | Every configuration variable name (values live in the gitignored `.env`) |
@@ -212,7 +214,7 @@ and in what order — when reviewing an exercise.
 ## The exercises
 
 Each exercise directory has its own README with the scenario, ground rules,
-and step-by-step instructions — read it before starting. Both exercises run
+and step-by-step instructions — read it before starting. All exercises run
 through `pw code` + the pw-commands server (with plain SSH as a fallback
 when the MCP route gets stuck):
 
@@ -224,6 +226,15 @@ when the MCP route gets stuck):
    partway with no error in sight. Three pieces of evidence and a one-line
    fix. Needs `make_input.sh`, `process_data.sh`, and `submit_process.sh`
    on the cluster.
+3. **[03 — the file that's right there](exercises/03-missing-input/)** — on
+   an AWS cloud cluster, a job fails because it can't open an input file
+   the submitter can `ls`. The compute node is started ahead of time, so
+   there's no cold-start wait. Needs `config.sh`, `stage_input.sh`,
+   `analyze_readings.sh`, and `submit_analyze.sh` on the cluster.
+4. **[04 — the workflow that fails](exercises/04-failed-workflow/)** — an
+   ACTIVATE workflow fails within seconds on the same cloud cluster. Diagnose it
+   with `pw code`'s built-in `diagnose-run` skill. Run the workflow from
+   the ACTIVATE UI or the `pw` CLI; nothing to copy to the cluster.
 
 ### Before you start
 

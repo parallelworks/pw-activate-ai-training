@@ -1,0 +1,71 @@
+permissions:
+  - '*'
+jobs:
+  report:
+    ssh:
+      remoteHost: ${{ inputs.resource.ip }}
+    steps:
+      - name: Prepare report
+        run: |
+          mkdir -p ~/04-report/$PW_RUN_SLUG
+          cd ~/04-report
+          cat > report.sbatch <<'EOF'
+          #!/bin/bash
+          #SBATCH --job-name=sensor_report
+          #SBATCH --ntasks=1
+          #SBATCH --time=00:05:00
+          #SBATCH --output=report_%j.out
+          python3 - "$OUTDIR" <<'PY'
+          import json, math, random, sys
+          random.seed(1)
+          data = {f"sensor-{s}": [round(20 + 4 * math.sin((h - 9) / 24 * 2 * math.pi) + random.gauss(s - 3, 0.6), 1) for h in range(48)] for s in range(1, 6)}
+          json.dump(data, open(sys.argv[1] + "/data.json", "w"))
+          print(f"analyzed {sum(map(len, data.values()))} readings from {len(data)} sensors")
+          PY
+          EOF
+          cat > $PW_RUN_SLUG/index.html <<'EOF'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Sensor report</title>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+          <body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 16px">
+          <h1>Sensor report</h1>
+          <canvas id="line"></canvas>
+          <canvas id="bar"></canvas>
+          <script>
+            fetch("data.json").then((r) => r.json()).then((d) => {
+              const names = Object.keys(d);
+              const avg = (v) => v.reduce((a, b) => a + b) / v.length;
+              new Chart(line, { type: "line", data: { labels: d[names[0]].map((_, h) => (h % 24) + ":00"), datasets: names.map((n) => ({ label: n, data: d[n], pointRadius: 0 })) }, options: { plugins: { title: { display: true, text: "Hourly temperature (°C)" } } } });
+              new Chart(bar, { type: "bar", data: { labels: names, datasets: [{ label: "Average temperature (°C)", data: names.map((n) => avg(d[n])) }] } });
+            });
+          </script>
+          EOF
+      - name: Run report
+        run: |
+          cd ~/04-report
+          partition="${{ inputs.partition }}"
+          [ "$partition" = default ] && partition=
+          set +e
+          jobid=$(sbatch --parsable --wait ${partition:+--partition=$partition} \
+              --export=ALL,OUTDIR=$HOME/04-report/$PW_RUN_SLUG report.sbatch)
+          rc=$?
+          set -e
+          [ -n "$jobid" ] && cat "report_${jobid}.out"
+          exit $rc
+      - name: Serve report
+        run: |
+          echo "Open the report_${PW_RUN_SLUG//-/_} session from Sessions. It stays up 30 minutes, or cancel the run."
+          timeout 30m pw endpoints serve -o text --name "report_${PW_RUN_SLUG//-/_}" ~/04-report/$PW_RUN_SLUG || [ $? -eq 124 ]
+'on':
+  execute:
+    inputs:
+      resource:
+        type: compute-clusters
+        label: Cluster
+        autoselect: true
+        optional: false
+      partition:
+        type: string
+        label: Slurm partition ("default" for the cluster's default)
+        default: render
