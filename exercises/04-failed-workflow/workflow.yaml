@@ -1,39 +1,62 @@
+permissions:
+  - '*'
 jobs:
-  render:
+  report:
     ssh:
       remoteHost: ${{ inputs.resource.ip }}
     steps:
-      - name: Write batch script
+      - name: Prepare report
         run: |
-          mkdir -p ~/04-render
-          cat > ~/04-render/render.sbatch <<'EOF'
+          mkdir -p ~/04-report/$PW_RUN_SLUG
+          cd ~/04-report
+          cat > report.sbatch <<'EOF'
           #!/bin/bash
-          #SBATCH --job-name=render_frames
-          #SBATCH --nodes=1
+          #SBATCH --job-name=sensor_report
           #SBATCH --ntasks=1
-          #SBATCH --output=render_%j.out
-          for f in $(seq 1 "$FRAMES"); do
-              sleep 1
-              echo "frame $f/$FRAMES rendered"
-          done
-          echo "all $FRAMES frames rendered"
+          #SBATCH --time=00:05:00
+          #SBATCH --output=report_%j.out
+          python3 - "$OUTDIR" <<'PY'
+          import json, math, random, sys
+          random.seed(1)
+          data = {f"sensor-{s}": [round(20 + 4 * math.sin((h - 9) / 24 * 2 * math.pi) + random.gauss(s - 3, 0.6), 1) for h in range(48)] for s in range(1, 6)}
+          json.dump(data, open(sys.argv[1] + "/data.json", "w"))
+          print(f"analyzed {sum(map(len, data.values()))} readings from {len(data)} sensors")
+          PY
           EOF
-      - name: Render frames
+          cat > $PW_RUN_SLUG/index.html <<'EOF'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Sensor report</title>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+          <body style="font-family: sans-serif; max-width: 800px; margin: auto; padding: 16px">
+          <h1>Sensor report</h1>
+          <canvas id="line"></canvas>
+          <canvas id="bar"></canvas>
+          <script>
+            fetch("data.json").then((r) => r.json()).then((d) => {
+              const names = Object.keys(d);
+              const avg = (v) => v.reduce((a, b) => a + b) / v.length;
+              new Chart(line, { type: "line", data: { labels: d[names[0]].map((_, h) => (h % 24) + ":00"), datasets: names.map((n) => ({ label: n, data: d[n], pointRadius: 0 })) }, options: { plugins: { title: { display: true, text: "Hourly temperature (°C)" } } } });
+              new Chart(bar, { type: "bar", data: { labels: names, datasets: [{ label: "Average temperature (°C)", data: names.map((n) => avg(d[n])) }] } });
+            });
+          </script>
+          EOF
+      - name: Run report
         run: |
-          cd ~/04-render
-          set +e
+          cd ~/04-report
           partition="${{ inputs.partition }}"
-          jobid=$(sbatch --parsable --wait \
-              ${partition:+--partition=$partition} \
-              --time=${{ inputs.walltime }} \
-              --export=ALL,FRAMES=${{ inputs.frames }} \
-              render.sbatch)
+          [ "$partition" = default ] && partition=
+          set +e
+          jobid=$(sbatch --parsable --wait ${partition:+--partition=$partition} \
+              --export=ALL,OUTDIR=$HOME/04-report/$PW_RUN_SLUG report.sbatch)
           rc=$?
           set -e
-          [ -n "$jobid" ] || exit $rc
-          echo "job $jobid finished with exit code $rc"
-          cat "render_${jobid}.out"
+          [ -n "$jobid" ] && cat "report_${jobid}.out"
           exit $rc
+      - name: Serve report
+        run: |
+          echo "Open the report_${PW_RUN_SLUG//-/_} session from Sessions. It stays up 30 minutes, or cancel the run."
+          timeout 30m pw endpoints serve -o text --name "report_${PW_RUN_SLUG//-/_}" ~/04-report/$PW_RUN_SLUG || [ $? -eq 124 ]
 'on':
   execute:
     inputs:
@@ -44,14 +67,5 @@ jobs:
         optional: false
       partition:
         type: string
-        label: Slurm partition (blank for the cluster default)
+        label: Slurm partition ("default" for the cluster's default)
         default: render
-        optional: true
-      frames:
-        type: number
-        label: Frames to render
-        default: 20
-      walltime:
-        type: string
-        label: Walltime (HH:MM:SS)
-        default: "00:05:00"

@@ -52,12 +52,15 @@ compute node, go through the scheduler, e.g. `srun -w <node> ls <path>`.
 
 Before the session:
 
-1. Start an AWS cluster on ACTIVATE and confirm `/home` is shared: `df -h ~`
-   should show the same network filesystem on the login node and through
-   `srun df -h ~`, and `/tmp` should not be shared.
-2. Bring up a compute node and keep it up for the session: submit a
-   placeholder job (`sbatch --wrap hostname`), wait for the node to go `idle`
-   after it finishes, and set the partition's idle shutdown long enough to
-   cover the session.
-3. Run the exercise end to end once: the job should fail because it cannot
+1. Start an AWS cluster on ACTIVATE and confirm `/home` is shared and `/tmp`
+   is not: on the login node and through `srun df -h ~ /tmp`, `~` should be
+   the same network mount (e.g. `<cluster>-mgmt:/home`) and `/tmp` a local
+   disk.
+2. Bring up a compute node: submit a placeholder job
+   (`sbatch --wrap hostname`) and wait for `sinfo` to show the node `idle` or
+   `mix` instead of `idle~` or `#`. A cold start takes several minutes.
+3. Check the node stays up: `scontrol show partition` should show
+   `SuspendTime=INFINITE`. If it shows a number of seconds, the node powers
+   off after that long idle; raise it for the session.
+4. Run the exercise end to end once: the job should fail because it cannot
    open the input file, and pass after the fix.
